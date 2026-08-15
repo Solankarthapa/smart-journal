@@ -42,6 +42,17 @@ def init_db():
     db.commit()
 
 
+def get_entry(entry_id):
+    return get_db().execute(
+        """
+        SELECT id, title, content, created_at
+        FROM entries
+        WHERE id = ?
+        """,
+        (entry_id,),
+    ).fetchone()
+
+
 @app.route("/")
 def index():
     entries = get_db().execute(
@@ -64,12 +75,47 @@ def create_entry():
         return redirect(url_for("index"))
 
     db = get_db()
-
     db.execute(
         "INSERT INTO entries (title, content) VALUES (?, ?)",
         (title, content),
     )
+    db.commit()
 
+    return redirect(url_for("index"))
+
+
+@app.route("/entries/<int:entry_id>/edit", methods=("GET", "POST"))
+def edit_entry(entry_id):
+    entry = get_entry(entry_id)
+
+    if entry is None:
+        return redirect(url_for("index"))
+
+    if request.method == "POST":
+        title = request.form["title"].strip()
+        content = request.form["content"].strip()
+
+        if title and content:
+            db = get_db()
+            db.execute(
+                """
+                UPDATE entries
+                SET title = ?, content = ?
+                WHERE id = ?
+                """,
+                (title, content, entry_id),
+            )
+            db.commit()
+
+            return redirect(url_for("index"))
+
+    return render_template("edit.html", entry=entry)
+
+
+@app.route("/entries/<int:entry_id>/delete", methods=("POST",))
+def delete_entry(entry_id):
+    db = get_db()
+    db.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
     db.commit()
 
     return redirect(url_for("index"))

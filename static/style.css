@@ -116,3 +116,67 @@ textarea {
     width: 100%;
     border: 1px solid rgb(143 164
 
+.entry-actions,
+.form-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    padding: 9px 12px;
+    text-decoration: none;
+    font: inherit;
+    font-size: 0.8rem;
+    font-weight: 800;
+    transition:
+        transform 160ms ease,
+        box-shadow 160ms ease,
+        border-color 160ms ease;
+}
+
+.button:hover {
+    transform: translateY(-1px);
+}
+
+.button-secondary {
+    border: 1px solid rgb(143 164 204 / 30%);
+    color: #c8d3ed;
+    background: rgb(255 255 255 / 5%);
+}
+
+.button-secondary:hover {
+    border-color: rgb(0 229 255 / 55%);
+    box-shadow: 0 0 18px rgb(0 229 255 / 14%);
+}
+
+.button-danger {
+    border: 1px solid rgb(255 77 136 / 48%);
+    padding: 9px 12px;
+    color: #ffd7e5;
+    background: rgb(255 77 136 / 10%);
+    box-shadow: none;
+}
+
+.button-danger:hover {
+    border-color: #ff4d88;
+    background: rgb(255 77 136 / 18%);
+    box-shadow: 0 0 18px rgb(255 77 136 / 18%);
+}
+
+.delete-form {
+    display: inline;
+}
+
+.form-actions {
+    margin-top: 14px;
+}
+
+.form-actions button {
+    margin-top: 0;
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit entry · Smart Journal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <p class="eyebrow">Refine your thoughts</p>
+            <h1>Edit entry</h1>
+            <p class="subtitle">Make changes, then save them.</p>
+        </header>
+
+        <section class="card">
+            <form method="post">
+                <label for="title">Title</label>
+                <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    maxlength="120"
+                    value="{{ entry['title'] }}"
+                    required
+                >
+
+                <label for="content">Entry</label>
+                <textarea
+                    id="content"
+                    name="content"
+                    rows="12"
+                    required
+                >{{ entry["content"] }}</textarea>
+
+                <div class="form-actions">
+                    <button type="submit">Save changes</button>
+                    <a class="button button-secondary" href="{{ url_for('index') }}">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </section>
+    </main>
+</body>
+</html>

@@ -51,8 +51,30 @@
                 {% for entry in entries %}
                     <article class="entry card">
                         <div class="entry-header">
-                            <h3>{{ entry["title"] }}</h3>
-                            <time>{{ entry["created_at"] }}</time>
+                            <div>
+                                <h3>{{ entry["title"] }}</h3>
+                                <time>{{ entry["created_at"] }}</time>
+                            </div>
+
+                            <div class="entry-actions">
+                                <a
+                                    class="button button-secondary"
+                                    href="{{ url_for('edit_entry', entry_id=entry['id']) }}"
+                                >
+                                    Edit
+                                </a>
+
+                                <form
+                                    class="delete-form"
+                                    action="{{ url_for('delete_entry', entry_id=entry['id']) }}"
+                                    method="post"
+                                    onsubmit="return confirm('Delete this journal entry?');"
+                                >
+                                    <button class="button button-danger" type="submit">
+                                        Delete
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                         <p>{{ entry["content"] }}</p>
