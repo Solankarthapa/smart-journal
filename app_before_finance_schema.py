@@ -6,7 +6,6 @@ from flask import Flask, g, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "journal.db"
-SCHEMA_FILE = BASE_DIR / "schema.sql"
 
 app = Flask(__name__)
 
@@ -108,9 +107,6 @@ def init_db():
             "INSERT OR IGNORE INTO categories (name) VALUES (?)",
             (category_name,),
         )
-
-    if SCHEMA_FILE.exists():
-        db.executescript(SCHEMA_FILE.read_text())
 
     db.commit()
 
