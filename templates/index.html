@@ -7,173 +7,227 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <main class="container">
-        <header class="hero">
-            <div class="topbar">
-                <div>
-                    <p class="eyebrow">Your private space</p>
-                    <h1>Smart Journal</h1>
-                    <p class="subtitle">Write down what matters.</p>
-                </div>
+    <main class="app-shell">
+        <header class="top-nav">
+            <a class="brand" href="{{ url_for('index') }}">
+                <span class="brand-mark">S</span>
+                <span>Smart Journal</span>
+            </a>
 
-                <a class="button button-secondary" href="{{ url_for('manage_categories') }}">
-                    Manage categories
+            <nav class="nav-links">
+                <a class="nav-link active" href="{{ url_for('index') }}">
+                    Journal
                 </a>
-            </div>
+                <a class="nav-link" href="{{ url_for('manage_categories') }}">
+                    Categories
+                </a>
+            </nav>
         </header>
 
-        <section class="card">
-            <h2>New entry</h2>
-
-            <form action="{{ url_for('create_entry') }}" method="post">
-                <label for="title">Title</label>
-                <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    maxlength="120"
-                    placeholder="e.g. Netflix"
-                    required
-                >
-
-                <div class="form-grid">
-                    <div>
-                        <label for="amount">Amount</label>
-                        <input
-                            type="number"
-                            id="amount"
-                            name="amount"
-                            min="0"
-                            step="0.01"
-                            placeholder="e.g. 88.00"
-                        >
-                    </div>
-
-                    <div>
-                        <label for="entry_date">Date</label>
-                        <input
-                            type="date"
-                            id="entry_date"
-                            name="entry_date"
-                            value="{{ today }}"
-                            required
-                        >
-                    </div>
-                </div>
-
-                <label for="category_id">Category</label>
-                <select id="category_id" name="category_id">
-                    <option value="">Choose a category</option>
-                    {% for category in categories %}
-                        <option value="{{ category['id'] }}">
-                            {{ category['name'] }}
-                        </option>
-                    {% endfor %}
-                </select>
-
-                <label for="content">Entry</label>
-                <textarea
-                    id="content"
-                    name="content"
-                    rows="8"
-                    placeholder="What happened?"
-                    required
-                ></textarea>
-
-                <button type="submit">Save entry</button>
-            </form>
-        </section>
-
-        <section class="entries">
-            <div class="section-heading">
-                <h2>Previous entries</h2>
-                <span>{{ entries|length }} shown</span>
+        <section class="dashboard-hero">
+            <div>
+                <p class="eyebrow">Personal command center</p>
+                <h1>Make space for your thoughts.</h1>
+                <p class="hero-copy">
+                    Capture what happened, keep the details, and find it again later.
+                </p>
             </div>
 
-            <form class="search-form" method="get" action="{{ url_for('index') }}">
-                <label class="sr-only" for="search">Search entries</label>
+            <div class="hero-orb" aria-hidden="true">
+                <span></span>
+            </div>
+        </section>
 
-                <input
-                    type="search"
-                    id="search"
-                    name="q"
-                    value="{{ search_query }}"
-                    placeholder="Search entries or categories..."
-                >
+        <section class="summary-grid" aria-label="Journal summary">
+            <article class="summary-card">
+                <span class="summary-label">Entries</span>
+                <strong>{{ summary["total_entries"] }}</strong>
+                <span class="summary-caption">thoughts captured</span>
+            </article>
 
-                <button type="submit">Search</button>
+            <article class="summary-card accent-purple">
+                <span class="summary-label">Recorded amount</span>
+                <strong>${{ "%.2f"|format(summary["total_amount"]) }}</strong>
+                <span class="summary-caption">across all entries</span>
+            </article>
+
+            <article class="summary-card accent-green">
+                <span class="summary-label">Categories</span>
+                <strong>{{ summary["total_categories"] }}</strong>
+                <span class="summary-caption">options available</span>
+            </article>
+        </section>
+
+        <section class="workspace-grid">
+            <section class="card composer-card">
+                <div class="section-title">
+                    <div>
+                        <span class="section-kicker">Capture</span>
+                        <h2>New entry</h2>
+                    </div>
+                    <span class="status-dot">Ready</span>
+                </div>
+
+                <form action="{{ url_for('create_entry') }}" method="post">
+                    <label for="title">Title</label>
+                    <input
+                        type="text"
+                        id="title"
+                        name="title"
+                        maxlength="120"
+                        placeholder="e.g. Netflix"
+                        required
+                    >
+
+                    <div class="form-grid">
+                        <div>
+                            <label for="amount">Amount</label>
+                            <input
+                                type="number"
+                                id="amount"
+                                name="amount"
+                                min="0"
+                                step="0.01"
+                                placeholder="88.00"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="entry_date">Date</label>
+                            <input
+                                type="date"
+                                id="entry_date"
+                                name="entry_date"
+                                value="{{ today }}"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <label for="category_id">Category</label>
+                    <select id="category_id" name="category_id">
+                        <option value="">Choose a category</option>
+                        {% for category in categories %}
+                            <option value="{{ category['id'] }}">
+                                {{ category['name'] }}
+                            </option>
+                        {% endfor %}
+                    </select>
+
+                    <label for="content">Entry</label>
+                    <textarea
+                        id="content"
+                        name="content"
+                        rows="7"
+                        placeholder="What happened?"
+                        required
+                    ></textarea>
+
+                    <button type="submit">Save entry</button>
+                </form>
+            </section>
+
+            <section class="history-section">
+                <div class="section-title history-title">
+                    <div>
+                        <span class="section-kicker">Timeline</span>
+                        <h2>Your entries</h2>
+                    </div>
+                    <span class="entry-count">{{ entries|length }} shown</span>
+                </div>
+
+                <form class="search-form" method="get" action="{{ url_for('index') }}">
+                    <label class="sr-only" for="search">Search entries</label>
+
+                    <input
+                        type="search"
+                        id="search"
+                        name="q"
+                        value="{{ search_query }}"
+                        placeholder="Search entries..."
+                    >
+
+                    <button type="submit">Search</button>
+
+                    {% if search_query %}
+                        <a class="button button-secondary" href="{{ url_for('index') }}">
+                            Clear
+                        </a>
+                    {% endif %}
+                </form>
 
                 {% if search_query %}
-                    <a class="button button-secondary" href="{{ url_for('index') }}">
-                        Clear
-                    </a>
+                    <p class="search-status">
+                        Results for “{{ search_query }}”
+                    </p>
                 {% endif %}
-            </form>
 
-            {% if search_query %}
-                <p class="search-status">
-                    Results for “{{ search_query }}”
-                </p>
-            {% endif %}
+                {% if entries %}
+                    <div class="entry-list">
+                        {% for entry in entries %}
+                            <article class="entry card">
+                                <div class="entry-header">
+                                    <div class="entry-heading">
+                                        <span class="entry-date">
+                                            {{ entry["entry_date"] or entry["created_at"] }}
+                                        </span>
+                                        <h3>{{ entry["title"] }}</h3>
+                                    </div>
 
-            {% if entries %}
-                {% for entry in entries %}
-                    <article class="entry card">
-                        <div class="entry-header">
-                            <div>
-                                <h3>{{ entry["title"] }}</h3>
-                                <time>
-                                    {{ entry["entry_date"] or entry["created_at"] }}
-                                </time>
-                            </div>
+                                    <div class="entry-actions">
+                                        <a
+                                            class="icon-button"
+                                            href="{{ url_for('edit_entry', entry_id=entry['id']) }}"
+                                            aria-label="Edit {{ entry['title'] }}"
+                                        >
+                                            Edit
+                                        </a>
 
-                            <div class="entry-actions">
-                                <a
-                                    class="button button-secondary"
-                                    href="{{ url_for('edit_entry', entry_id=entry['id']) }}"
-                                >
-                                    Edit
-                                </a>
+                                        <form
+                                            class="delete-form"
+                                            action="{{ url_for('delete_entry', entry_id=entry['id']) }}"
+                                            method="post"
+                                            onsubmit="return confirm('Delete this journal entry?');"
+                                        >
+                                            <button
+                                                class="icon-button danger"
+                                                type="submit"
+                                                aria-label="Delete {{ entry['title'] }}"
+                                            >
+                                                Delete
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
 
-                                <form
-                                    class="delete-form"
-                                    action="{{ url_for('delete_entry', entry_id=entry['id']) }}"
-                                    method="post"
-                                    onsubmit="return confirm('Delete this journal entry?');"
-                                >
-                                    <button class="button button-danger" type="submit">
-                                        Delete
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
+                                <div class="entry-meta">
+                                    {% if entry["amount"] is not none %}
+                                        <span class="amount">
+                                            ${{ "%.2f"|format(entry["amount"]) }}
+                                        </span>
+                                    {% endif %}
 
-                        <div class="entry-meta">
-                            {% if entry["amount"] is not none %}
-                                <span class="amount">
-                                    ${{ "%.2f"|format(entry["amount"]) }}
-                                </span>
-                            {% endif %}
+                                    {% if entry["category_name"] %}
+                                        <span class="category-badge">
+                                            {{ entry["category_name"] }}
+                                        </span>
+                                    {% endif %}
+                                </div>
 
-                            {% if entry["category_name"] %}
-                                <span class="category-badge">
-                                    {{ entry["category_name"] }}
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <p>{{ entry["content"] }}</p>
-                    </article>
-                {% endfor %}
-            {% elif search_query %}
-                <div class="empty-state card">
-                    <p>No entries matched your search.</p>
-                </div>
-            {% else %}
-                <div class="empty-state card">
-                    <p>Your saved entries will appear here.</p>
-                </div>
-            {% endif %}
+                                <p>{{ entry["content"] }}</p>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% elif search_query %}
+                    <div class="empty-state card">
+                        <p>No entries matched your search.</p>
+                    </div>
+                {% else %}
+                    <div class="empty-state card">
+                        <p>Your saved entries will appear here.</p>
+                    </div>
+                {% endif %}
+            </section>
         </section>
     </main>
 </body>

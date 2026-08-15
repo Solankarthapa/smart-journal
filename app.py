@@ -161,6 +161,29 @@ def parse_entry_date(raw_date):
     return raw_date if raw_date else date.today().isoformat()
 
 
+def get_summary():
+    db = get_db()
+
+    summary = db.execute(
+        """
+        SELECT
+            COUNT(*) AS total_entries,
+            COALESCE(SUM(amount), 0) AS total_amount
+        FROM entries
+        """
+    ).fetchone()
+
+    category_count = db.execute(
+        "SELECT COUNT(*) AS total_categories FROM categories"
+    ).fetchone()
+
+    return {
+        "total_entries": summary["total_entries"],
+        "total_amount": summary["total_amount"],
+        "total_categories": category_count["total_categories"],
+    }
+
+
 @app.route("/")
 def index():
     search_query = request.args.get("q", "").strip()
@@ -222,6 +245,7 @@ def index():
         categories=get_categories(),
         search_query=search_query,
         today=date.today().isoformat(),
+        summary=get_summary(),
     )
 
 
