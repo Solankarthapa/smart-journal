@@ -44,8 +44,34 @@
         <section class="entries">
             <div class="section-heading">
                 <h2>Previous entries</h2>
-                <span>{{ entries|length }} total</span>
+                <span>{{ entries|length }} shown</span>
             </div>
+
+            <form class="search-form" method="get" action="{{ url_for('index') }}">
+                <label class="sr-only" for="search">Search entries</label>
+
+                <input
+                    type="search"
+                    id="search"
+                    name="q"
+                    value="{{ search_query }}"
+                    placeholder="Search your entries..."
+                >
+
+                <button type="submit">Search</button>
+
+                {% if search_query %}
+                    <a class="button button-secondary" href="{{ url_for('index') }}">
+                        Clear
+                    </a>
+                {% endif %}
+            </form>
+
+            {% if search_query %}
+                <p class="search-status">
+                    Results for “{{ search_query }}”
+                </p>
+            {% endif %}
 
             {% if entries %}
                 {% for entry in entries %}
@@ -80,6 +106,10 @@
                         <p>{{ entry["content"] }}</p>
                     </article>
                 {% endfor %}
+            {% elif search_query %}
+                <div class="empty-state card">
+                    <p>No entries matched your search.</p>
+                </div>
             {% else %}
                 <div class="empty-state card">
                     <p>Your saved entries will appear here.</p>

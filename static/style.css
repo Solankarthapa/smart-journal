@@ -180,3 +180,48 @@ textarea {
 .form-actions button {
     margin-top: 0;
 }
+.search-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 18px 0 12px;
+}
+
+.search-form input {
+    flex: 1;
+}
+
+.search-form button {
+    width: auto;
+    margin-top: 0;
+    white-space: nowrap;
+}
+
+.search-status {
+    margin: 0 0 14px;
+    color: #75829f;
+    font-size: 0.85rem;
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 600px) {
+    .search-form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .search-form button,
+    .search-form .button {
+        width: 100%;
+    }
+}

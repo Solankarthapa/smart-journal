@@ -55,15 +55,34 @@ def get_entry(entry_id):
 
 @app.route("/")
 def index():
-    entries = get_db().execute(
-        """
-        SELECT id, title, content, created_at
-        FROM entries
-        ORDER BY created_at DESC, id DESC
-        """
-    ).fetchall()
+    search_query = request.args.get("q", "").strip()
 
-    return render_template("index.html", entries=entries)
+    if search_query:
+        search_pattern = f"%{search_query}%"
+
+        entries = get_db().execute(
+            """
+            SELECT id, title, content, created_at
+            FROM entries
+            WHERE title LIKE ? OR content LIKE ?
+            ORDER BY created_at DESC, id DESC
+            """,
+            (search_pattern, search_pattern),
+        ).fetchall()
+    else:
+        entries = get_db().execute(
+            """
+            SELECT id, title, content, created_at
+            FROM entries
+            ORDER BY created_at DESC, id DESC
+            """
+        ).fetchall()
+
+    return render_template(
+        "index.html",
+        entries=entries,
+        search_query=search_query,
+    )
 
 
 @app.route("/entries", methods=("POST",))
@@ -75,10 +94,12 @@ def create_entry():
         return redirect(url_for("index"))
 
     db = get_db()
+
     db.execute(
         "INSERT INTO entries (title, content) VALUES (?, ?)",
         (title, content),
     )
+
     db.commit()
 
     return redirect(url_for("index"))
@@ -97,6 +118,7 @@ def edit_entry(entry_id):
 
         if title and content:
             db = get_db()
+
             db.execute(
                 """
                 UPDATE entries
@@ -105,6 +127,7 @@ def edit_entry(entry_id):
                 """,
                 (title, content, entry_id),
             )
+
             db.commit()
 
             return redirect(url_for("index"))
@@ -115,7 +138,12 @@ def edit_entry(entry_id):
 @app.route("/entries/<int:entry_id>/delete", methods=("POST",))
 def delete_entry(entry_id):
     db = get_db()
-    db.execute("DELETE FROM entries WHERE id = ?", (entry_id,))
+
+    db.execute(
+        "DELETE FROM entries WHERE id = ?",
+        (entry_id,),
+    )
+
     db.commit()
 
     return redirect(url_for("index"))
