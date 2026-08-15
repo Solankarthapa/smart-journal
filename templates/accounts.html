@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accounts · Smart Journal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="app-shell">
+        <header class="top-nav">
+            <a class="brand" href="{{ url_for('index') }}">
+                <span class="brand-mark">S</span>
+                <span>Smart Journal</span>
+            </a>
+
+            <nav class="nav-links">
+                <a class="nav-link" href="{{ url_for('index') }}">
+                    Journal
+                </a>
+                <a class="nav-link active" href="{{ url_for('manage_accounts') }}">
+                    Accounts
+                </a>
+                <a class="nav-link" href="{{ url_for('manage_categories') }}">
+                    Categories
+                </a>
+            </nav>
+        </header>
+
+        <section class="dashboard-hero compact-hero">
+            <div>
+                <p class="eyebrow">Financial foundation</p>
+                <h1>Your accounts.</h1>
+                <p class="hero-copy">
+                    Add the accounts you want Smart Journal to use for
+                    calculations and purchase decisions.
+                </p>
+            </div>
+        </section>
+
+        <section class="workspace-grid accounts-grid">
+            <section class="card composer-card">
+                <div class="section-title">
+                    <div>
+                        <span class="section-kicker">Setup</span>
+                        <h2>Add account</h2>
+                    </div>
+                </div>
+
+                <form method="post">
+                    <label for="name">Account name</label>
+                    <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        maxlength="100"
+                        placeholder="e.g. Main debit account"
+                        required
+                    >
+
+                    <label for="account_type">Account type</label>
+                    <select id="account_type" name="account_type" required>
+                        <option value="">Choose a type</option>
+                        <option value="debit">Debit account</option>
+                        <option value="savings">Savings account</option>
+                        <option value="credit_card">Credit card</option>
+                    </select>
+
+                    <label for="institution">Institution</label>
+                    <input
+                        type="text"
+                        id="institution"
+                        name="institution"
+                        maxlength="100"
+                        placeholder="e.g. HSBC"
+                    >
+
+                    <label for="current_balance">Current balance</label>
+                    <input
+                        type="number"
+                        id="current_balance"
+                        name="current_balance"
+                        min="0"
+                        step="0.01"
+                        placeholder="0.00"
+                        required
+                    >
+
+                    <label for="credit_limit">
+                        Credit limit
+                        <span class="field-hint">Credit cards only</span>
+                    </label>
+                    <input
+                        type="number"
+                        id="credit_limit"
+                        name="credit_limit"
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g. 20000.00"
+                    >
+
+                    <button type="submit">Add account</button>
+                </form>
+            </section>
+
+            <section>
+                <div class="section-title history-title">
+                    <div>
+                        <span class="section-kicker">Overview</span>
+                        <h2>Saved accounts</h2>
+                    </div>
+                    <span class="entry-count">{{ accounts|length }} total</span>
+                </div>
+
+                {% if accounts %}
+                    <div class="entry-list">
+                        {% for account in accounts %}
+                            <article class="account-card card">
+                                <div class="account-card-top">
+                                    <div>
+                                        <span class="account-type">
+                                            {{ account["account_type"].replace("_", " ") }}
+                                        </span>
+                                        <h3>{{ account["name"] }}</h3>
+                                    </div>
+
+                                    <form
+                                        method="post"
+                                        action="{{ url_for('delete_account', account_id=account['id']) }}"
+                                        onsubmit="return confirm('Delete this account?');"
+                                    >
+                                        <button class="icon-button danger" type="submit">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <div class="account-details">
+                                    {% if account["institution"] %}
+                                        <span>{{ account["institution"] }}</span>
+                                    {% endif %}
+
+                                    <strong>
+                                        ${{ "%.2f"|format(account["current_balance"]) }}
+                                    </strong>
+
+                                    {% if account["credit_limit"] is not none %}
+                                        <span>
+                                            Limit:
+                                            ${{ "%.2f"|format(account["credit_limit"]) }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state card">
+                        <p>No accounts added yet.</p>
+                    </div>
+                {% endif %}
+            </section>
+        </section>
+    </main>
+</body>
+</html>

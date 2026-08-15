@@ -595,3 +595,63 @@ button:hover {
         width: 100%;
     }
 }
+.compact-hero {
+    margin-bottom: 30px;
+}
+
+.accounts-grid {
+    grid-template-columns: minmax(300px, 0.8fr) minmax(0, 1.2fr);
+}
+
+.field-hint {
+    color: #65718c;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.account-card {
+    padding: 20px;
+}
+
+.account-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.account-card h3 {
+    margin: 7px 0 0;
+    color: #ffffff;
+    font-size: 1.1rem;
+}
+
+.account-type {
+    color: #00d8ef;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.account-details {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 18px;
+    color: #8390ad;
+    font-size: 0.8rem;
+}
+
+.account-details strong {
+    color: #c9ff9f;
+    font-size: 1.35rem;
+    letter-spacing: -0.04em;
+}
+
+@media (max-width: 900px) {
+    .accounts-grid {
+        grid-template-columns: 1fr;
+    }
+}

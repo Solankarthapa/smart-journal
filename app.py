@@ -147,6 +147,23 @@ def get_categories():
     ).fetchall()
 
 
+def get_accounts():
+    return get_db().execute(
+        """
+        SELECT
+            id,
+            name,
+            account_type,
+            institution,
+            current_balance,
+            credit_limit,
+            created_at
+        FROM accounts
+        ORDER BY account_type, name COLLATE NOCASE
+        """
+    ).fetchall()
+
+
 def parse_amount(raw_amount):
     raw_amount = raw_amount.strip()
 
@@ -163,29 +180,6 @@ def parse_entry_date(raw_date):
     raw_date = raw_date.strip()
 
     return raw_date if raw_date else date.today().isoformat()
-
-
-def get_summary():
-    db = get_db()
-
-    summary = db.execute(
-        """
-        SELECT
-            COUNT(*) AS total_entries,
-            COALESCE(SUM(amount), 0) AS total_amount
-        FROM entries
-        """
-    ).fetchone()
-
-    category_count = db.execute(
-        "SELECT COUNT(*) AS total_categories FROM categories"
-    ).fetchone()
-
-    return {
-        "total_entries": summary["total_entries"],
-        "total_amount": summary["total_amount"],
-        "total_categories": category_count["total_categories"],
-    }
 
 
 @app.route("/")
@@ -243,13 +237,27 @@ def index():
             """
         ).fetchall()
 
+    summary = get_db().execute(
+        """
+        SELECT
+            COUNT(*) AS total_entries,
+            COALESCE(SUM(amount), 0) AS total_amount
+        FROM entries
+        """
+    ).fetchone()
+
     return render_template(
         "index.html",
         entries=entries,
         categories=get_categories(),
+        accounts=get_accounts(),
         search_query=search_query,
         today=date.today().isoformat(),
-        summary=get_summary(),
+        summary={
+            "total_entries": summary["total_entries"],
+            "total_amount": summary["total_amount"],
+            "total_categories": len(get_categories()),
+        },
     )
 
 
@@ -274,14 +282,7 @@ def create_entry():
             (title, content, tags, amount, category_id, entry_date)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (
-            title,
-            content,
-            "",
-            amount,
-            category_id,
-            entry_date,
-        ),
+        (title, content, "", amount, category_id, entry_date),
     )
 
     db.commit()
@@ -365,12 +366,10 @@ def manage_categories():
 
         if name:
             db = get_db()
-
             db.execute(
                 "INSERT OR IGNORE INTO categories (name) VALUES (?)",
                 (name,),
             )
-
             db.commit()
 
         return redirect(url_for("manage_categories"))
@@ -393,6 +392,71 @@ def delete_category(category_id):
     db.commit()
 
     return redirect(url_for("manage_categories"))
+
+
+@app.route("/accounts", methods=("GET", "POST"))
+def manage_accounts():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+        account_type = request.form["account_type"].strip()
+        institution = request.form.get("institution", "").strip()
+        current_balance = parse_amount(
+            request.form.get("current_balance", "")
+        )
+        credit_limit = parse_amount(
+            request.form.get("credit_limit", "")
+        )
+
+        valid_types = {"debit", "savings", "credit_card"}
+
+        if (
+            name
+            and account_type in valid_types
+            and current_balance is not None
+        ):
+            if account_type != "credit_card":
+                credit_limit = None
+
+            db = get_db()
+
+            db.execute(
+                """
+                INSERT INTO accounts
+                    (name, account_type, institution,
+                     current_balance, credit_limit)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (
+                    name,
+                    account_type,
+                    institution or None,
+                    current_balance,
+                    credit_limit,
+                ),
+            )
+
+            db.commit()
+
+        return redirect(url_for("manage_accounts"))
+
+    return render_template(
+        "accounts.html",
+        accounts=get_accounts(),
+    )
+
+
+@app.route("/accounts/<int:account_id>/delete", methods=("POST",))
+def delete_account(account_id):
+    db = get_db()
+
+    db.execute(
+        "DELETE FROM accounts WHERE id = ?",
+        (account_id,),
+    )
+
+    db.commit()
+
+    return redirect(url_for("manage_accounts"))
 
 
 with app.app_context():
