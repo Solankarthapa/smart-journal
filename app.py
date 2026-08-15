@@ -13,6 +13,7 @@ def get_db():
     if "db" not in g:
         g.db = sqlite3.connect(DATABASE)
         g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
 
     return g.db
 
@@ -30,14 +31,67 @@ def init_db():
 
     db.execute(
         """
-        CREATE TABLE IF NOT EXISTS entries (
+        CREATE TABLE IF NOT EXISTS categories (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
+            name TEXT NOT NULL UNIQUE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
         """
     )
+
+    db.execute(
+        """
+        CREATE TABLE IF NOT EXISTS entries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            tags TEXT NOT NULL DEFAULT '',
+            amount REAL,
+            category_id INTEGER,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (category_id) REFERENCES categories (id)
+                ON DELETE SET NULL
+        )
+        """
+    )
+
+    entry_columns = {
+        row["name"]
+        for row in db.execute("PRAGMA table_info(entries)").fetchall()
+    }
+
+    if "tags" not in entry_columns:
+        db.execute(
+            "ALTER TABLE entries ADD COLUMN tags TEXT NOT NULL DEFAULT ''"
+        )
+
+    if "amount" not in entry_columns:
+        db.execute(
+            "ALTER TABLE entries ADD COLUMN amount REAL"
+        )
+
+    if "category_id" not in entry_columns:
+        db.execute(
+            "ALTER TABLE entries ADD COLUMN category_id INTEGER"
+        )
+
+    default_categories = (
+        "Subscription",
+        "One-off",
+        "Food",
+        "Transport",
+        "Shopping",
+        "Income",
+        "Investment",
+        "Health",
+        "Other",
+    )
+
+    for category_name in default_categories:
+        db.execute(
+            "INSERT OR IGNORE INTO categories (name) VALUES (?)",
+            (category_name,),
+        )
 
     db.commit()
 
@@ -45,12 +99,44 @@ def init_db():
 def get_entry(entry_id):
     return get_db().execute(
         """
-        SELECT id, title, content, created_at
+        SELECT
+            entries.id,
+            entries.title,
+            entries.content,
+            entries.tags,
+            entries.amount,
+            entries.category_id,
+            entries.created_at,
+            categories.name AS category_name
         FROM entries
-        WHERE id = ?
+        LEFT JOIN categories
+            ON entries.category_id = categories.id
+        WHERE entries.id = ?
         """,
         (entry_id,),
     ).fetchone()
+
+
+def get_categories():
+    return get_db().execute(
+        """
+        SELECT id, name, created_at
+        FROM categories
+        ORDER BY name COLLATE NOCASE
+        """
+    ).fetchall()
+
+
+def parse_amount(raw_amount):
+    raw_amount = raw_amount.strip()
+
+    if not raw_amount:
+        return None
+
+    try:
+        return float(raw_amount)
+    except ValueError:
+        return None
 
 
 @app.route("/")
@@ -62,25 +148,54 @@ def index():
 
         entries = get_db().execute(
             """
-            SELECT id, title, content, created_at
+            SELECT
+                entries.id,
+                entries.title,
+                entries.content,
+                entries.tags,
+                entries.amount,
+                entries.category_id,
+                entries.created_at,
+                categories.name AS category_name
             FROM entries
-            WHERE title LIKE ? OR content LIKE ?
-            ORDER BY created_at DESC, id DESC
+            LEFT JOIN categories
+                ON entries.category_id = categories.id
+            WHERE entries.title LIKE ?
+               OR entries.content LIKE ?
+               OR entries.tags LIKE ?
+               OR categories.name LIKE ?
+            ORDER BY entries.created_at DESC, entries.id DESC
             """,
-            (search_pattern, search_pattern),
+            (
+                search_pattern,
+                search_pattern,
+                search_pattern,
+                search_pattern,
+            ),
         ).fetchall()
     else:
         entries = get_db().execute(
             """
-            SELECT id, title, content, created_at
+            SELECT
+                entries.id,
+                entries.title,
+                entries.content,
+                entries.tags,
+                entries.amount,
+                entries.category_id,
+                entries.created_at,
+                categories.name AS category_name
             FROM entries
-            ORDER BY created_at DESC, id DESC
+            LEFT JOIN categories
+                ON entries.category_id = categories.id
+            ORDER BY entries.created_at DESC, entries.id DESC
             """
         ).fetchall()
 
     return render_template(
         "index.html",
         entries=entries,
+        categories=get_categories(),
         search_query=search_query,
     )
 
@@ -89,15 +204,23 @@ def index():
 def create_entry():
     title = request.form["title"].strip()
     content = request.form["content"].strip()
+    amount = parse_amount(request.form.get("amount", ""))
+    category_id = request.form.get("category_id", "").strip()
 
     if not title or not content:
         return redirect(url_for("index"))
 
+    category_id = int(category_id) if category_id.isdigit() else None
+
     db = get_db()
 
     db.execute(
-        "INSERT INTO entries (title, content) VALUES (?, ?)",
-        (title, content),
+        """
+        INSERT INTO entries
+            (title, content, tags, amount, category_id)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (title, content, "", amount, category_id),
     )
 
     db.commit()
@@ -115,24 +238,45 @@ def edit_entry(entry_id):
     if request.method == "POST":
         title = request.form["title"].strip()
         content = request.form["content"].strip()
+        amount = parse_amount(request.form.get("amount", ""))
+        category_id = request.form.get("category_id", "").strip()
 
         if title and content:
+            category_id = (
+                int(category_id)
+                if category_id.isdigit()
+                else None
+            )
+
             db = get_db()
 
             db.execute(
                 """
                 UPDATE entries
-                SET title = ?, content = ?
+                SET title = ?,
+                    content = ?,
+                    amount = ?,
+                    category_id = ?
                 WHERE id = ?
                 """,
-                (title, content, entry_id),
+                (
+                    title,
+                    content,
+                    amount,
+                    category_id,
+                    entry_id,
+                ),
             )
 
             db.commit()
 
             return redirect(url_for("index"))
 
-    return render_template("edit.html", entry=entry)
+    return render_template(
+        "edit.html",
+        entry=entry,
+        categories=get_categories(),
+    )
 
 
 @app.route("/entries/<int:entry_id>/delete", methods=("POST",))
@@ -147,6 +291,43 @@ def delete_entry(entry_id):
     db.commit()
 
     return redirect(url_for("index"))
+
+
+@app.route("/categories", methods=("GET", "POST"))
+def manage_categories():
+    if request.method == "POST":
+        name = request.form["name"].strip()
+
+        if name:
+            db = get_db()
+
+            db.execute(
+                "INSERT OR IGNORE INTO categories (name) VALUES (?)",
+                (name,),
+            )
+
+            db.commit()
+
+        return redirect(url_for("manage_categories"))
+
+    return render_template(
+        "categories.html",
+        categories=get_categories(),
+    )
+
+
+@app.route("/categories/<int:category_id>/delete", methods=("POST",))
+def delete_category(category_id):
+    db = get_db()
+
+    db.execute(
+        "DELETE FROM categories WHERE id = ?",
+        (category_id,),
+    )
+
+    db.commit()
+
+    return redirect(url_for("manage_categories"))
 
 
 with app.app_context():

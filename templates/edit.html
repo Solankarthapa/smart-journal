@@ -9,9 +9,17 @@
 <body>
     <main class="container">
         <header class="hero">
-            <p class="eyebrow">Refine your thoughts</p>
-            <h1>Edit entry</h1>
-            <p class="subtitle">Make changes, then save them.</p>
+            <div class="topbar">
+                <div>
+                    <p class="eyebrow">Refine your thoughts</p>
+                    <h1>Edit entry</h1>
+                    <p class="subtitle">Update the details, then save.</p>
+                </div>
+
+                <a class="button button-secondary" href="{{ url_for('manage_categories') }}">
+                    Manage categories
+                </a>
+            </div>
         </header>
 
         <section class="card">
@@ -25,6 +33,32 @@
                     value="{{ entry['title'] }}"
                     required
                 >
+
+                <label for="amount">Amount</label>
+                <input
+                    type="number"
+                    id="amount"
+                    name="amount"
+                    min="0"
+                    step="0.01"
+                    value="{{ entry['amount'] if entry['amount'] is not none else '' }}"
+                    placeholder="e.g. 88.00"
+                >
+
+                <label for="category_id">Category</label>
+                <select id="category_id" name="category_id">
+                    <option value="">No category</option>
+                    {% for category in categories %}
+                        <option
+                            value="{{ category['id'] }}"
+                            {% if entry['category_id'] == category['id'] %}
+                                selected
+                            {% endif %}
+                        >
+                            {{ category['name'] }}
+                        </option>
+                    {% endfor %}
+                </select>
 
                 <label for="content">Entry</label>
                 <textarea

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Categories · Smart Journal</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="container">
+        <header class="hero">
+            <div class="topbar">
+                <div>
+                    <p class="eyebrow">Organize your entries</p>
+                    <h1>Categories</h1>
+                    <p class="subtitle">
+                        Create the options that appear in your journal dropdown.
+                    </p>
+                </div>
+
+                <a class="button button-secondary" href="{{ url_for('index') }}">
+                    Back to journal
+                </a>
+            </div>
+        </header>
+
+        <section class="card">
+            <h2>Add a category</h2>
+
+            <form method="post">
+                <label for="name">Category name</label>
+                <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    maxlength="80"
+                    placeholder="e.g. Subscription"
+                    required
+                >
+
+                <button type="submit">Add category</button>
+            </form>
+        </section>
+
+        <section class="entries">
+            <div class="section-heading">
+                <h2>Available categories</h2>
+                <span>{{ categories|length }} total</span>
+            </div>
+
+            {% for category in categories %}
+                <article class="category-row card">
+                    <span>{{ category["name"] }}</span>
+
+                    <form
+                        method="post"
+                        action="{{ url_for('delete_category', category_id=category['id']) }}"
+                        onsubmit="return confirm('Delete this category? Entries will keep their data but lose this category.');"
+                    >
+                        <button class="button button-danger" type="submit">
+                            Delete
+                        </button>
+                    </form>
+                </article>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>
