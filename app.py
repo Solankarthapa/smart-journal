@@ -1,3 +1,4 @@
+from datetime import date
 from pathlib import Path
 import sqlite3
 
@@ -48,6 +49,7 @@ def init_db():
             tags TEXT NOT NULL DEFAULT '',
             amount REAL,
             category_id INTEGER,
+            entry_date DATE,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (category_id) REFERENCES categories (id)
                 ON DELETE SET NULL
@@ -74,6 +76,19 @@ def init_db():
         db.execute(
             "ALTER TABLE entries ADD COLUMN category_id INTEGER"
         )
+
+    if "entry_date" not in entry_columns:
+        db.execute(
+            "ALTER TABLE entries ADD COLUMN entry_date DATE"
+        )
+
+    db.execute(
+        """
+        UPDATE entries
+        SET entry_date = DATE(created_at)
+        WHERE entry_date IS NULL
+        """
+    )
 
     default_categories = (
         "Subscription",
@@ -106,6 +121,7 @@ def get_entry(entry_id):
             entries.tags,
             entries.amount,
             entries.category_id,
+            entries.entry_date,
             entries.created_at,
             categories.name AS category_name
         FROM entries
@@ -139,6 +155,12 @@ def parse_amount(raw_amount):
         return None
 
 
+def parse_entry_date(raw_date):
+    raw_date = raw_date.strip()
+
+    return raw_date if raw_date else date.today().isoformat()
+
+
 @app.route("/")
 def index():
     search_query = request.args.get("q", "").strip()
@@ -155,6 +177,7 @@ def index():
                 entries.tags,
                 entries.amount,
                 entries.category_id,
+                entries.entry_date,
                 entries.created_at,
                 categories.name AS category_name
             FROM entries
@@ -164,7 +187,7 @@ def index():
                OR entries.content LIKE ?
                OR entries.tags LIKE ?
                OR categories.name LIKE ?
-            ORDER BY entries.created_at DESC, entries.id DESC
+            ORDER BY entries.entry_date DESC, entries.id DESC
             """,
             (
                 search_pattern,
@@ -183,12 +206,13 @@ def index():
                 entries.tags,
                 entries.amount,
                 entries.category_id,
+                entries.entry_date,
                 entries.created_at,
                 categories.name AS category_name
             FROM entries
             LEFT JOIN categories
                 ON entries.category_id = categories.id
-            ORDER BY entries.created_at DESC, entries.id DESC
+            ORDER BY entries.entry_date DESC, entries.id DESC
             """
         ).fetchall()
 
@@ -197,6 +221,7 @@ def index():
         entries=entries,
         categories=get_categories(),
         search_query=search_query,
+        today=date.today().isoformat(),
     )
 
 
@@ -205,6 +230,7 @@ def create_entry():
     title = request.form["title"].strip()
     content = request.form["content"].strip()
     amount = parse_amount(request.form.get("amount", ""))
+    entry_date = parse_entry_date(request.form.get("entry_date", ""))
     category_id = request.form.get("category_id", "").strip()
 
     if not title or not content:
@@ -217,10 +243,17 @@ def create_entry():
     db.execute(
         """
         INSERT INTO entries
-            (title, content, tags, amount, category_id)
-        VALUES (?, ?, ?, ?, ?)
+            (title, content, tags, amount, category_id, entry_date)
+        VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (title, content, "", amount, category_id),
+        (
+            title,
+            content,
+            "",
+            amount,
+            category_id,
+            entry_date,
+        ),
     )
 
     db.commit()
@@ -239,6 +272,7 @@ def edit_entry(entry_id):
         title = request.form["title"].strip()
         content = request.form["content"].strip()
         amount = parse_amount(request.form.get("amount", ""))
+        entry_date = parse_entry_date(request.form.get("entry_date", ""))
         category_id = request.form.get("category_id", "").strip()
 
         if title and content:
@@ -256,7 +290,8 @@ def edit_entry(entry_id):
                 SET title = ?,
                     content = ?,
                     amount = ?,
-                    category_id = ?
+                    category_id = ?,
+                    entry_date = ?
                 WHERE id = ?
                 """,
                 (
@@ -264,6 +299,7 @@ def edit_entry(entry_id):
                     content,
                     amount,
                     category_id,
+                    entry_date,
                     entry_id,
                 ),
             )
@@ -276,6 +312,7 @@ def edit_entry(entry_id):
         "edit.html",
         entry=entry,
         categories=get_categories(),
+        today=date.today().isoformat(),
     )
 
 
