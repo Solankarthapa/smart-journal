@@ -6,7 +6,6 @@ from flask import Flask, g, redirect, render_template, request, url_for
 
 BASE_DIR = Path(__file__).resolve().parent
 DATABASE = BASE_DIR / "journal.db"
-SCHEMA_FILE = BASE_DIR / "schema.sql"
 
 app = Flask(__name__)
 
@@ -109,9 +108,6 @@ def init_db():
             (category_name,),
         )
 
-    if SCHEMA_FILE.exists():
-        db.executescript(SCHEMA_FILE.read_text())
-
     db.commit()
 
 
@@ -147,23 +143,6 @@ def get_categories():
     ).fetchall()
 
 
-def get_accounts():
-    return get_db().execute(
-        """
-        SELECT
-            id,
-            name,
-            account_type,
-            institution,
-            current_balance,
-            credit_limit,
-            created_at
-        FROM accounts
-        ORDER BY account_type, name COLLATE NOCASE
-        """
-    ).fetchall()
-
-
 def parse_amount(raw_amount):
     raw_amount = raw_amount.strip()
 
@@ -180,6 +159,29 @@ def parse_entry_date(raw_date):
     raw_date = raw_date.strip()
 
     return raw_date if raw_date else date.today().isoformat()
+
+
+def get_summary():
+    db = get_db()
+
+    summary = db.execute(
+        """
+        SELECT
+            COUNT(*) AS total_entries,
+            COALESCE(SUM(amount), 0) AS total_amount
+        FROM entries
+        """
+    ).fetchone()
+
+    category_count = db.execute(
+        "SELECT COUNT(*) AS total_categories FROM categories"
+    ).fetchone()
+
+    return {
+        "total_entries": summary["total_entries"],
+        "total_amount": summary["total_amount"],
+        "total_categories": category_count["total_categories"],
+    }
 
 
 @app.route("/")
@@ -237,27 +239,13 @@ def index():
             """
         ).fetchall()
 
-    summary = get_db().execute(
-        """
-        SELECT
-            COUNT(*) AS total_entries,
-            COALESCE(SUM(amount), 0) AS total_amount
-        FROM entries
-        """
-    ).fetchone()
-
     return render_template(
         "index.html",
         entries=entries,
         categories=get_categories(),
-        accounts=get_accounts(),
         search_query=search_query,
         today=date.today().isoformat(),
-        summary={
-            "total_entries": summary["total_entries"],
-            "total_amount": summary["total_amount"],
-            "total_categories": len(get_categories()),
-        },
+        summary=get_summary(),
     )
 
 
@@ -282,7 +270,14 @@ def create_entry():
             (title, content, tags, amount, category_id, entry_date)
         VALUES (?, ?, ?, ?, ?, ?)
         """,
-        (title, content, "", amount, category_id, entry_date),
+        (
+            title,
+            content,
+            "",
+            amount,
+            category_id,
+            entry_date,
+        ),
     )
 
     db.commit()
@@ -366,10 +361,12 @@ def manage_categories():
 
         if name:
             db = get_db()
+
             db.execute(
                 "INSERT OR IGNORE INTO categories (name) VALUES (?)",
                 (name,),
             )
+
             db.commit()
 
         return redirect(url_for("manage_categories"))
@@ -392,6 +389,24 @@ def delete_category(category_id):
     db.commit()
 
     return redirect(url_for("manage_categories"))
+
+
+
+def get_accounts():
+    return get_db().execute(
+        """
+        SELECT
+            id,
+            name,
+            account_type,
+            institution,
+            current_balance,
+            credit_limit,
+            created_at
+        FROM accounts
+        ORDER BY account_type, name COLLATE NOCASE
+        """
+    ).fetchall()
 
 
 @app.route("/accounts", methods=("GET", "POST"))
@@ -457,6 +472,114 @@ def delete_account(account_id):
     db.commit()
 
     return redirect(url_for("manage_accounts"))
+
+
+
+def get_transactions():
+    return get_db().execute(
+        '''
+        SELECT
+            transactions.id,
+            transactions.account_id,
+            transactions.category_id,
+            transactions.transaction_type,
+            transactions.description,
+            transactions.amount,
+            transactions.transaction_date,
+            transactions.status,
+            transactions.notes,
+            accounts.name AS account_name,
+            categories.name AS category_name
+        FROM transactions
+        JOIN accounts
+            ON accounts.id = transactions.account_id
+        LEFT JOIN categories
+            ON categories.id = transactions.category_id
+        ORDER BY transactions.transaction_date DESC,
+                 transactions.id DESC
+        '''
+    ).fetchall()
+
+
+@app.route("/transactions", methods=("GET", "POST"))
+def manage_transactions():
+    db = get_db()
+
+    if request.method == "POST":
+        description = request.form.get("description", "").strip()
+        transaction_type = request.form.get("transaction_type", "").strip()
+        account_id = request.form.get("account_id", "").strip()
+        category_id = request.form.get("category_id", "").strip() or None
+        amount = parse_amount(request.form.get("amount", ""))
+        transaction_date = request.form.get("transaction_date", "").strip()
+        status = request.form.get("status", "pending").strip()
+        notes = request.form.get("notes", "").strip()
+
+        valid_types = {
+            "income",
+            "expense",
+            "transfer",
+            "credit_payment",
+        }
+        valid_statuses = {
+            "pending",
+            "confirmed",
+            "posted",
+            "failed",
+        }
+
+        if (
+            description
+            and transaction_type in valid_types
+            and account_id.isdigit()
+            and amount is not None
+            and amount >= 0
+            and transaction_date
+            and status in valid_statuses
+        ):
+            account = db.execute(
+                "SELECT id FROM accounts WHERE id = ?",
+                (int(account_id),),
+            ).fetchone()
+
+            category = None
+            if category_id is not None and category_id.isdigit():
+                category = db.execute(
+                    "SELECT id FROM categories WHERE id = ?",
+                    (int(category_id),),
+                ).fetchone()
+
+            if account and (category_id is None or category):
+                db.execute(
+                    '''
+                    INSERT INTO transactions
+                        (account_id, category_id, transaction_type,
+                         description, amount, transaction_date,
+                         status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ''',
+                    (
+                        int(account_id),
+                        int(category_id) if category_id else None,
+                        transaction_type,
+                        description,
+                        amount,
+                        transaction_date,
+                        status,
+                        notes or None,
+                    ),
+                )
+                db.commit()
+
+        return redirect(url_for("manage_transactions"))
+
+    return render_template(
+        "transactions.html",
+        accounts=get_accounts(),
+        categories=get_categories(),
+        transactions=get_transactions(),
+        today=date.today().isoformat(),
+    )
 
 
 with app.app_context():

@@ -655,3 +655,100 @@ button:hover {
         grid-template-columns: 1fr;
     }
 }
+.transactions-grid {
+    grid-template-columns: minmax(300px, 0.82fr) minmax(0, 1.18fr);
+}
+
+.form-notice {
+    border: 1px solid rgb(255 196 91 / 28%);
+    border-radius: 10px;
+    padding: 13px;
+    color: #ffe0a2;
+    background: rgb(255 196 91 / 7%);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+.transaction-card {
+    padding: 19px;
+}
+
+.transaction-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.transaction-card h3 {
+    margin: 7px 0 0;
+    color: #ffffff;
+    font-size: 1.02rem;
+}
+
+.transaction-amount {
+    white-space: nowrap;
+    font-size: 1.05rem;
+}
+
+.transaction-amount.positive {
+    color: #c9ff9f;
+}
+
+.transaction-amount.negative {
+    color: #ffb6cf;
+}
+
+.transaction-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 14px;
+}
+
+.transaction-meta > span {
+    border: 1px solid rgb(143 164 204 / 20%);
+    border-radius: 999px;
+    padding: 5px 8px;
+    color: #9ba8c3;
+    background: rgb(255 255 255 / 3%);
+    font-size: 0.7rem;
+    font-weight: 750;
+}
+
+.status-badge.pending {
+    border-color: rgb(255 196 91 / 30%);
+    color: #ffe0a2;
+}
+
+.status-badge.confirmed,
+.status-badge.posted {
+    border-color: rgb(166 255 91 / 28%);
+    color: #c9ff9f;
+}
+
+.status-badge.failed,
+.status-badge.reversed {
+    border-color: rgb(255 77 136 / 32%);
+    color: #ffb6cf;
+}
+
+.transaction-card p {
+    margin: 14px 0 0;
+    color: #8996b2;
+    line-height: 1.55;
+}
+
+@media (max-width: 900px) {
+    .transactions-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .transaction-top {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+}
